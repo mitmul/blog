@@ -1,9 +1,8 @@
 ---
 layout:  post
 title:  "Relation Networks for Object Detection"
+mathjax: true
 ---
-
-{% include mathjax.html %}
 
 ## Object Relation Module
 
@@ -21,14 +20,14 @@ title:  "Relation Networks for Object Detection"
 出力の計算は以下の式で表される。queryを${\bf q}$、すべてのkeyを並べた行列を$K$、valueを並べたものを行列$V$とすると、
 
 $$
-v^{\rm out} = {\rm softmax}\left( \frac{{\bf q} K^t}{\sqrt{d_k}} \right) V.
+v^{\rm out} = {\rm softmax}\left( \frac{ {\bf q} K^t}{\sqrt{d_k}} \right) V.
 $$
 
 ### Object Relation
 
 ではObject relationはどうやって計算するか。まず、objectはgeometric feature ${\bf f}_G$とappearance feature ${\bf f}_A$によって構成されていると考えてみる。今回は、${\bf f}_G$はシンプルに４次元のbounding boxで、${\bf f}_A$はタスクによって変えることにする。
 
-$N$個の物体が与えられたとして：$\left\{ ({\bf f}^n_A, {\bf f}^n_G) \right\}^N_{n=1}$ 、$n$個目の物体とすべての物体との間のrelation feature ${\bf f}_R(n)$は、以下のように計算される：
+$N$個の物体が与えられたとして：$\left\{ ( {\bf f}^n_A, {\bf f}^n_G) \right\}^N_{n=1} $ 、$n$個目の物体とすべての物体との間のrelation feature ${\bf f}_R(n)$は、以下のように計算される：
 
 $$
 {\bf f}_R(n) = \sum_m w(m, n) \cdot (W_V \cdot {\bf f}^m_A)
@@ -45,7 +44,7 @@ $$
 appearance weight $w_A(m, n)$は以下のような内積で計算される：
 
 $$
-w_A(m, n) = \frac{{\rm dot}(W_K {\bf f}^m_A, W_Q {\bf f}^n_A)}{\sqrt{d_k}}
+w_A(m, n) = \frac{ {\rm dot}(W_K {\bf f}^m_A, W_Q {\bf f}^n_A)}{\sqrt{d_k}}
 $$
 
 ここで$W_K$と$W_Q$は、SDPAにおける$K$と$Q$と似たような役割を果たす。これらは、${\bf f}^m_A$と${\bf f}^m_A$というfeatureをそれぞれどのくらいマッチしているかを図るためのsubspaceにprojectする。projectしたあとの特徴量の次元は$d_k$である。
