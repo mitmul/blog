@@ -1,8 +1,9 @@
 ---
 layout:  post
-title:  "Relation Networks for Object Detection" 
+title:  "Relation Networks for Object Detection"
 ---
 
+{% include mathjax.html %}
 
 ## Object Relation Module
 
@@ -79,7 +80,7 @@ $$
 
 ```python
 f_G = (xmin, ymin, xmax, ymax)
-f_R[n] = 
+f_R[n] =
 ```
 
 
