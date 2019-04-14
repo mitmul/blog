@@ -14,42 +14,55 @@ Generative adversarial networks（GAN）は，一様分布や正規分布から�
 
 自然界のデータには，その内容によって起こりやすさに偏りがある．例えば，人間がパスポートや免許証の申請に用いるような証明写真のデジタルデータを大量に集めてきたとすると，それらの画像の中央付近では，肌色に近い色のピクセルが存在する確率が，緑や青といった色のピクセルが存在する確率よりも明らかに高くなっているだろう．つまり，それらの画像から中央付近を適当に切り出してそこに存在するRGBの3次元ベクトルの値ごとの出現しやすさを返す関数を考えてみると，肌色：$(R, G, B) = (252, 226, 196)$付近で大きな値を返すような関数になることが予想される．もし，あるデータに関して，どのような値がどのような確率で現れるのかを表す確率分布が分かっているとするなら，これを用いて実際のデータと同じ分布に従う値をサンプルすることができる場合がある．このように，何らかの方法でデータが生成される仕組みを表現したものを生成モデルという．確率分布そのものが陽に求められなくても，観測された値からデータが従う確率分布を推定し，その推定に基づいてサンプルを抽出することができるようなモデルも，生成モデルの一種である．
 
-生成モデルを学習する方法の一つには，データの確率分布を何らかのパラメータを持つモデル（例えば，平均と分散というパラメータを持つガウス関数など）で表現しておき，観測されたデータの分布$p_{\rm data}$とこのモデルが表す分布$p_{\rm model}$の間の差異が小さくなるように，モデルのパラメータを決定するといったものがある．例えば，その差異をKullback-Leibler （KL）ダイバージェンスによって測り，これを最小化する場合，それは観測データの尤度を最大化するようにパラメータを決定することと等しいので，最尤推定と呼ばれる．ここで，確率分布$p$の確率分布$q$に対するKLダイバージェンスは
+生成モデルを学習する方法の一つには，データの確率分布を何らかのパラメータを持つモデル（例えば，平均と分散というパラメータを持つガウス関数など）で表現しておき，観測されたデータの分布$p_{\rm data}$とこのモデルが表す分布$p_{\rm model}$の間の差異が小さくなるように，モデルのパラメータを決定するといったものがある．例えば，その差異をKullback-Leibler （KL）ダイバージェンスによって測り，これを最小化する場合，それは観測データの尤度を最大化するようにパラメータを決定することと等しいので，最尤推定と呼ばれる．ここで，$p_{\rm data}$の$p_{\rm model}$に対するKLダイバージェンスは
 
 $$
-KL(p || q) = \int_{-\infty}^{\infty} p(x) \log \frac{p(x)}{q(x)} {\rm d}x
+KL(p_{\rm data} || p_{\rm model}) = \int_{-\infty}^{\infty} p_{\rm data}(x) \log \frac{p_{\rm data}(x)}{p_{\rm model}(x)} {\rm d}x
 $$
 
 と定義される．これは，以下のように変形できる．
 
 $$
 \begin{align}
-KL(p || q)
-&= \int_{-\infty}^{\infty} p(x) \log \frac{p(x)}{q(x)} {\rm d}x \\
-&= \int_{-\infty}^{\infty} p(x) \log p(x) {\rm d}x - \int_{-\infty}^{\infty} p(x) \log q(x) {\rm d}x
+KL(p_{\rm data} \parallel p_{\rm model})
+&= \int_{-\infty}^{\infty} p_{\rm data}(x) \log \frac{p_{\rm data}(x)}{p_{\rm model}(x)} {\rm d}x \nonumber \\
+&= \int_{-\infty}^{\infty} p_{\rm data}(x) \log p_{\rm data}(x) {\rm d}x - \int_{-\infty}^{\infty} p_{\rm data}(x) \log p_{\rm model}(x) {\rm d}x \nonumber
 \end{align}
 $$
 
-しかし，この最尤推定を用いて高次元データの生成モデルを学習するのは，非常に困難であった．
+すると，この第1項は$p_{\rm data}(x)$というデータ分布が変わらないとすれば定数であり，一方第2項は符号を除けば$\log p_{\rm model}(x)$という値の期待値
+
+$$
+\mathbb{E}_{p_{\rm data}} \left[ \log p_{\rm model}(x) \right]
+$$
+
+であることがわかる．この$p_{\rm data}$全体に渡る期待値計算を，実際に観測された$N$個のデータ$\\{x_1, x_2, \dots, x_N\\}$を用いた$\log p_{\rm model}(x)$の値の平均値で近似することを考える．すなわち実際に観測したサンプル＝データ集合全体の部分集合を用いて近似したデータ分布（これを経験分布という）を使った期待値計算で近似すると，
+
+$$
+\begin{align}
+\mathbb{E}_{p_{\rm data}} \left[ \log p_{\rm model}(x) \right] 
+&\approx \frac{1}{N} \sum_{i=1}^N \log p_{\rm model}(x_i) \nonumber \\
+&= \frac{1}{N} \log \prod_{i=1}^N p_{\rm model}(x_i) \nonumber
+\end{align}
+$$
+
+となる．このとき，$\prod_{i=1}^N p_{\rm model}(x_i)$は，観測されたデータ列$\\{x_1, x_2, \dots, x_N\\}$の$p_{\rm model}$を用いて測られる尤度（likelihood）を表しているから，上の式はこの尤度の対数をとったもの（対数尤度）であることがわかる．
+
+結果，KLダイバージェンスはモデルに関係する部分だけを見ればこの対数尤度の符号を反転させたもの（負の対数尤度）となるから，KLダイバージェンスを最小にするということは，尤度を最大化するということに他ならないわけである．よって，最尤推定と呼ばれる．しかし，この最尤推定を用いて高次元データの生成モデルを学習するのは，非常に困難であった．次に，その理由を説明する．
 
 冒頭の例では，画像の各ピクセルをRGBを意味する3次元空間上の1点であるとして考えたが，画像全体も（幅$\times$高さ$\times$チャンネル数）次元の空間上の1点であると考えることができる．今，幅と高さが両方512ピクセルだとしてみると，一枚の画像は$512 \times 512 \times 3 = 786432$という非常に高次元の空間上の1点であるということになる．しかし，自然画像はこの高次元空間上にまんべんなく分布しているわけではなく，ほとんどの場所には何のデータも存在しない．例えば，この高次元空間からランダムに1つの点を抽出してきて，それを$512 \times 512$サイズの3チャンネルカラー画像として見てみると，かなりの確率で自然な画像からは程遠い，無意味なノイズ画像が現れてくるだろうことは，想像に難くない．つまり，画像データが定義される空間全体に対して，実際に存在する画像というのはそのごく一部にしか分布していないということが予想される．
 
-% 自然画像中の互いに近い位置にあるピクセル間には，強い相関が存在する．例えば，
 さらに，人が画像中を移動したり，カメラの向きや照明条件が変化することで現れる画像の値としての変化を考えてみると，すべての画像を表現するための空間の次元数に比べれば，それが非常に少ない次元数のパラメータによって支配されていることが想像できるのではないだろうか．例えば，カメラの位置や人の位置を示すのに十分なだけの次元数しかもたない低次元のパラメータがあれば，ある微妙に異なる画像間の本質的な変化を表現するのには十分であるかもしれない．このように，実際に観測されるデータは，データの見かけ上の次元よりもはるかに少ない次元で表される空間上に分布していると考えることができそうである．これを多様体仮説という．多様体とは，例えば球の表面がそれである．球自体は3次元空間に存在しているが，表面だけを見ると，その広がりは2次元的である．例えば，地球は3次元的に広がっているが，我々は地表面を2次元的な広がりとして捉えていることを考えてみるとよい．
 
 さて，このような多様体仮説を考えるとき，空間の様々な位置に確率を割り当てるモデルを最尤推定で求めることには問題があることが知られている．最尤推定では，データ分布が極めて低い確率を割り当てているような領域，すなわち画像生成の場合全く自然でないような画像に対応する領域に対して，モデルが$0$より大きい確率を割り当ててしまっていたとしても，データ分布がほとんど$0$のような小さな値となっている時点でKLダイバージェンスは小さい値を取ってしまうため，この最小化によって達成される最尤推定はそのようなモデルの間違いをうまく罰することができないのである[^Arjovsky2017]．多様体仮説が成り立つようなデータの場合は，ほとんどの点において確率は$0$となっているだろうから，これは深刻な問題となる．さらに，観測データの確率分布が$0$より大きい値となっている領域（サポートという）と，モデルが$0$より大きい確率を割り当てている領域とが互いに全く重なっていないような状況になると，この二つの分布の距離を測るためのKLダイバージェンスが不定となってしまう．
 
 このように，最尤推定を用いた高次元データの，特に多様体仮説が成り立つようなデータの生成モデル学習には，様々な問題が存在する．本稿で解説するGANは，このような最尤推定が持つ問題を回避することができる手法の一つとなっている．
 
-GANは，最尤推定で最小化されるKLダイバージェンスとは異なる，Jensen-Shanon（JS）ダイバージェンスという距離の最小化を行っている．JSダイバージェンスはデータ分布$p_{\rm data}$とモデルが表現する分布$p_{\rm model}$の平均の分布$M = (p_{\rm data} + p_{\rm model}) / 2$を考え，これに対するデータ分布のKLダイバージェンス$KL(p_{\rm data} || M)$およびモデルが表す分布のKLダイバージェンス$KL(p_{\rm model} || M)$をそれぞれ考慮する．このため，距離の計算に用いられる分布間（$p_{\rm data}$と$M$の組み合わせ，もしくは$p_{\rm model}$と$M$の組み合わせ）に必ず確率が$0$より大きくなっている領域の重なりが生じるため，最尤推定のときに起こっていた問題を回避することができるのである．
+GANは，最尤推定で最小化されるKLダイバージェンスとは異なる，Jensen-Shanon（JS）ダイバージェンスという距離の最小化を行っている．JSダイバージェンスはデータ分布$p_{\rm data}$とモデルが表現する分布$p_{\rm model}$の平均の分布$M = (p_{\rm data} + p_{\rm model}) / 2$を考え，これに対するデータ分布のKLダイバージェンス$KL(p_{\rm data} \parallel M)$およびモデルが表す分布のKLダイバージェンス$KL(p_{\rm model} \parallel M)$をそれぞれ考慮する．このため，距離の計算に用いられる分布間（$p_{\rm data}$と$M$の組み合わせ，もしくは$p_{\rm model}$と$M$の組み合わせ）に必ず確率が$0$より大きくなっている領域の重なりが生じるため，最尤推定のときに起こっていた問題を回避することができるのである．
 
-\section{生成モデルの重要性}
+## 生成モデルの重要性
 
 GANが最尤推定の持ついくつかの問題を回避できることが分かった．しかし，GANが行うのは，どのようなデータがどのような確率で生じるのかを表す確率密度関数の直接的な推定ではなく，データの分布に近づくよう学習した分布から，サンプルを抽出することができるGeneratorを得ることである．つまり，GANによって達成されるのは$p_{\rm model}$からサンプルを抽出できるということであり，データの分布そのものを陽に得ることではない．にも関わらず，対象のデータの分布に近い分布からサンプルを得ることができるということは，意外にも多くの場面で役に立つ．
-
-%生成モデルとは，さまざまなデータがそれぞれ，どのくらいの確率で現れるものなのかを表すモデルのことをいう．生成モデルにも様々な種類のものがあるが，直接対象となるデータの確率密度関数を推定するのではなく，生成モデルの学習方法としては観測されたデータの尤度を最大にするようにモデルのパラメータを決定する最尤推定と呼ばれる方法がよく用いられる．
-%
-%GANは基本的に，この確率分布の密度関数を直接推定するのではなく，$p_{\rm model}$からのサンプルを生成することができるモデルを学習することで間接的にこれを表現しようとするものである．つまり，どのようなデータがどのような確率で生成されるかを示す密度関数を得ることはできない．これがどのような役に立つのであろうか．
 
 例えば，モデルベース強化学習について考えてみよう．強化学習とは，エージェントが環境とのインタラクションを通して行動指針（ポリシーと呼ばれる）を学習する，という問題設定を指すが，特にモデルベース強化学習では，この“環境”についても，これを表現または予測するためのモデルを何らかの形で学習する．例えば，時系列データの生成モデルを使って，環境の現在の状態とエージェントの行動から，その環境の“あり得る将来の状態”を予測することができる条件付き分布を学習すれば[^Finn2016]，望ましい将来の状態を最も生じさせやすいような行動を選択するのに役立つだろう[^Finn2017]．また，生成モデルによって仮想環境を作り，これを用いてエージェントの行動ポリシーを学習することも可能となる[^David2018]．このように，モデルベース強化学習への応用では，確率密度関数を陽に得ることができないとしても，条件付き分布からサンプルを得ることができる生成モデルがあれば，十分に有用である可能性がある．
 
@@ -57,7 +70,7 @@ GANが最尤推定の持ついくつかの問題を回避できることが分�
 
 他にも，生成モデル，特にGANが持つ重要な性質として，複数のモードを持つ出力を扱うことができるという点がある．現実のタスクでは，全く同一の入力に対して，複数の異なる望ましい出力が存在するという状況があり得る．このようなとき，望ましい出力とモデルの予測の間の平均二乗誤差を最小化するような形で学習を行うモデルでは，一つの入力に複数の異なる正解が対応しているケースを，うまく扱うことができない．例えば，動画中の次のフレームを前のフレームから予測するというタスクにおいて，同じフレームから複数の異なる見え方のフレームが現れるようなデータが存在すると，予測と正解の間の平均二乗誤差を最小にするような予測モデルは次のフレームとしてあり得る様々な可能性の平均をとったような，ぼやけた予測しか生み出せなくなる．これに対して，GANの考え方を用いた損失関数を最適化の際に加えて考慮すれば，よりシャープな予測フレームを生成することが可能になる[^Lotter2015]．低解像度の画像から高解像度の画像を生成する超解像技術も，同一の入力に対し出力に複数の可能性が考えられるため，同様の問題設定となる．これもGANの枠組みを応用することで結果を改善できることが示されている[^Ledig2017]．
 
-\section{GANの仕組み}
+## GANの仕組み
 
 それでは，以上のような特徴・利点をもつGANを，どのような方法で学習することができるのか，説明を行う．GANの学習方法はしばしば鑑定士と贋作者の戦いに例えられる．贋作者は，鑑定士の目を欺けるよう本物と可能な限り見分けがつかないような贋作を生成しようと，腕を磨く．一方，鑑定士は贋作者が生成した作品と本物の作品を見分ける目を常に鍛えておき，贋作は贋作と，本物は本物と判別するのが仕事である．この贋作者をGenerator（$G$）というニューラルネットワークに，鑑定士をDiscriminator（$D$）というニューラルネットワークに置き換えて考えると，GANの学習方法は非常に直感的に理解することができる．
 
@@ -69,47 +82,51 @@ GANが最尤推定の持ついくつかの問題を回避できることが分�
 
 さて，GANを用いた論文ではほぼ必ずといっていいほど頻繁に登場する，GANの学習における目的関数を表す式を用いて，再度同じことの説明を試みる．この式に見慣れておくことが，様々なGANについての文献を読むにあたり役に立つことを期待する．贋作者$G$と鑑定士$D$という2つのニューラルネットワークの学習は，以下のような目的関数に対するミニマックス・ゲームとして定式化されている．
 
+$$
 \begin{equation}
 \label{eq:loss_function}
 \min_G \max_D V(D, G) =
-\mathbb{E}_{{\bf x} \sim p_{\rm data}({\bf x})} \left[ \log D({\bf x}) \right]
-+ \mathbb{E}_{{\bf z} \sim p_{\bf z}({\bf z})} \left[ \log (1 - D(G({\bf z}))) \right].
+\mathbb{E}_{ {\bf x} \sim p_{\rm data}({\bf x})} \left[ \log D({\bf x}) \right]
++ \mathbb{E}_{ {\bf z} \sim p_{\bf z}({\bf z})} \left[ \log (1 - D(G({\bf z}))) \right].
 \end{equation}
+$$
 
 ここで，$p_{\rm data}({\bf x})$はデータ分布であり，${\bf x}$はそこから抽出された実例である．一方，ノイズ${\bf z}$は事前ノイズ分布$p_{\bf z}({\bf z})$から抽出されたランダムな値を持つノイズベクトルである（$p_{\bf z}({\bf z})$には一般に一様分布や正規分布が用いられることが多い）．まず，$G$はノイズ${\bf z}$を受け取りフェイクサンプル$G({\bf z})$を出力する．次に，$D$は学習データセット内の実例${\bf x}$を受け取り，これが学習データセット由来である確率$D({\bf x})$を出力する．当然$D$は，これを最大にしたい．さらに$D$は，$G$が生成したフェイクサンプル$G({\bf z})$も受け取って，それがデータセット由来である確率$D(G({\bf z}))$も予測している．$D$の立場にたてば，これは贋作に騙される確率を意味するので，最小にしたい．それは，$1 - D(G({\bf z}))$を最大化するのと同じである．つまり，第2項は，$D$にとっては，第1項と同様最大化したいものということになる．一方，$G$の立場にたてば，$1 - D(G({\bf z}))$というのはフェイクサンプルが学習データセット由来である確率$D(G({\bf z}))$（＝贋作で騙せる確率）を1から引いたものであるから，つまり贋作がデータセット由来でない，と見破られる確率を表しており，最小化したい．
 
-%および$G$が生成したサンプル（$G({\bf z})$）を受け取り，それぞれについて，学習データセット由来である確率を出力する．当然$D$は，${\bf x}$に対しては高い値を，$G({\bf z})$に対しては低い値を出力したい．一方，$1 - D(G({\bf z}))$はフェイクのサンプルが学習データセット由来である確率（$D(G({\bf z}))$）を1から引いているので，つまりそれがデータセット由来でない，と見破られる確率を表しており，$G$はこれを最小にしたい．$D$はこれも最大にしたい．
-
 よって，全体としてはこの目的関数は学習データセット由来の実例を学習データセット由来であると，$G$が生成したフェイクサンプルは学習データセット由来でないと，正しく見分けられる度合いを表しており，$D$の視点に立てばこの式を最大化したいということになり，$D$が判別を誤るほどリアルなサンプルを生成したい$G$の視点に立てば，この式を最小化したいということになる．
-
-%ここまでの説明中では$\log$が省かれているが，最大／最小を考える時，対数関数は単調増加関数なので最大／最小を与える値を変えないので，
 
 ここまで説明したGANの学習方法を振り返りながら，再び図~\ref{fig:gan_architecture}を眺めてみると，${\bf x}_{\rm fake}$が前述の$G({\bf z})$に，${\bf x}_{\rm real}$が前述の${\bf x}$に，それぞれ対応していることが分かる．繰り返しになってしまうが，このようにGeneratorとDiscriminatorを互いに競い合わせるようにして学習させる点がGANの学習における特徴的な部分である．
 
 さて，式~\ref{eq:loss_function}中の$\mathbb{E}$は期待値計算を意味するが，これが実際にはどのようにして近似計算されるのかについては，次節のアルゴリズム~\ref{training}を用いて解説を行う．
 
-%ノイズからデータを生成するようなGeneratorを学習するためのものであるが，何らかの入力を与え，それに条件付けられた出力を生成するようGeneratorを訓練するConditional GAN[^Mirza2014]と呼ばれる派生手法も提案されている．Conditional GANでは，条件として画像とランダムノイズの両方を与えて画像を生成するため，同一の画像を条件として与えても，異なるノイズと一緒にGeneratorへ入力された場合は異なる結果を出力することができ，同一入力から複数モードの分布を出力できる高機能な画像から画像への変換器などを作るといった応用が考えられる．例えば，Pix2PixHD[^Wang2018]では，Conditional GANを応用して，$2048 \times 1024 [{\rm pixel}^2]$という非常に高解像度の画像間の変換を学習することに成功している．これについては後ほど再び解説する．
+### GANの学習アルゴリズム
 
-\subsection{GANの学習アルゴリズム}
 
-\begin{algorithm}
-\setstretch{1.20}
-\caption{ミニバッチ確率的勾配降下法によるGANの学習．$k$は1イテレーション中に何回$D$のパラメータを更新するかというハイパーパラメータである．ミニバッチサイズは$m$とする．}
-\label{training}
-\begin{algorithmic}
-\FOR{学習イテレーションの数}
-\FOR{$k$ステップ}
-\STATE $m$個のノイズ$\left\{ {\bf z}^{(1)}, {\bf z}^{(2)}, \dots, {\bf z}^{(m)} \right\}$を$p_{\bf z}({\bf z})$からサンプリングする
-\STATE $m$個の実例$\left\{ {\bf x}^{(1)}, {\bf x}^{(2)}, \dots, {\bf x}^{(m)} \right\}$をデータセットからサンプリングする
-\STATE Discriminator（$D$）のパラメータ$\theta_d$を以下の式に従って更新
-\STATE $$\theta_d \leftarrow \theta_d + \nabla_{\theta_d} \frac{1}{m} \sum_{i=1}^m \left[ \log D({\bf x}^{(i)}) + \log (1 - D(G({\bf z}^{(i)}))) \right].$$
-\ENDFOR
+
+**Algorithm 1**
+ミニバッチ確率的勾配降下法によるGANの学習．$k$は1イテレーション中に何回$D$のパラメータを更新するかというハイパーパラメータである．ミニバッチサイズは$m$とする．
+
+for 学習イテレーションの数 do
+
+    for $k$ステップ do
+
+        $m$個のノイズ$\left\{ {\bf z}^{(1)}, {\bf z}^{(2)}, \dots, {\bf z}^{(m)} \right\}$を$p_{\bf z}({\bf z})$からサンプリングする
+
+        $m$個の実例$\left\{ {\bf x}^{(1)}, {\bf x}^{(2)}, \dots, {\bf x}^{(m)} \right\}$をデータセットからサンプリングする
+
+        Discriminator（$D$）のパラメータ$\theta_d$を以下の式に従って更新
+
+$$
+\theta_d \leftarrow \theta_d + \nabla_{\theta_d} \frac{1}{m} \sum_{i=1}^m \left[ \log D({\bf x}^{(i)}) + \log (1 - D(G({\bf z}^{(i)}))) \right].
+$$
+
 \STATE $m$個のノイズ$\left\{ {\bf z}^{(1)}, {\bf z}^{(2)}, \dots, {\bf z}^{(m)} \right\}$を$p_{\bf z}({\bf z})$からサンプリングする
 \STATE Generator（$G$）のパラメータ$\theta_g$を以下の式に従って更新
 \STATE $$\theta_g \leftarrow \theta_g - \nabla_{\theta_g} \frac{1}{m} \sum_{i=1}^m \log(1 - D(G({\bf z}^{(i)}))).$$
 \ENDFOR
 \end{algorithmic}
 \end{algorithm}
+$$
 
 アルゴリズム~\ref{training}にGANの学習ループの流れをまとめたものを示す．ここで，$D$は$G$由来のサンプルと学習データセット由来の実例を見分けるように訓練されるが，ある学習中の1イテレーションの最中に，学習データセット内の全ての実例および同数のその時点の$G$が生成したサンプル全体を用いて$D$の更新を行うのではなく，ミニバッチサイズの分だけ実例の抽出とフェイクサンプルの生成を行ったら，これを使って一旦$D$の更新を行ってしまう．さらにこれを$k$回繰り返したら，一度$D$の更新は止め，$G$の更新を1回行うようにする．これをGANの学習全体における1イテレーションとすることで，学習にかかる時間を削減する．
 
@@ -139,7 +156,7 @@ DCGANは，CNNを用いたというだけでなく，学習の安定化を図る
 
 DCGAN登場以降，より高解像度で大規模なデータセットを用いた画像生成を目指して，これを発展させるべく多くの研究が行われたが，途中で学習が進まなくなったり，Generatorが多様な画像を生成しなくなるmode collapseと呼ばれる現象が起こるなど，GANの学習の安定化という部分には大きな課題があった．また，学習中にDiscriminatorのロスカーブを観察しても，そこから有用な情報を得るのが難しく，学習がうまくいっているのか失敗しているのか，判断できないという問題があった．
 
-そこで，Wasserstein GAN（WGAN）[^WGAN]という新しい学習方法が提案された．\ref{sec:generative_models}章にてGANはJSダイバージェンスの最小化を行っていると述べたが，データの分布とモデルが表現する分布の間の距離をWasserstein距離によって表し，この最小化を行うように改良したのがWGANである．これによって学習は比較的安定するようになり，またDiscriminatorのロスが分布間のWasserstein距離を近似的に表すようになったためこれを学習の成否の参考にすることが可能となった．しかし，WGANは$D$がリプシッツであるようパラメータを一定の値$c$で$[-c, c]$の範囲にクリップする必要があるなど，新たなハイパーパラメータを導入してしまうことともなった．weight clippingにより$D$にリプシッツを強制することは“clearly terrible way”であると著者も言っており[^WGAN]，その後この論文の著者らによって$D$の勾配ノルムが大きくならないようペナルティ項を損失関数に加えることでweight clippingの必要性を取り除き，かつより安定したWGANの学習を行うことができるWGAN-GP~\cite{WGAN-GP}という手法が提案されている．WGAN-GPは，その後の多くの手法で基本形として用いられている．
+そこで，Wasserstein GAN（WGAN）[^WGAN]という新しい学習方法が提案された．\ref{sec:generative_models}章にてGANはJSダイバージェンスの最小化を行っていると述べたが，データの分布とモデルが表現する分布の間の距離をWasserstein距離によって表し，この最小化を行うように改良したのがWGANである．これによって学習は比較的安定するようになり，またDiscriminatorのロスが分布間のWasserstein距離を近似的に表すようになったためこれを学習の成否の参考にすることが可能となった．しかし，WGANは$D$がリプシッツであるようパラメータを一定の値$c$で$[-c, c]$の範囲にクリップする必要があるなど，新たなハイパーパラメータを導入してしまうことともなった．weight clippingにより$D$にリプシッツを強制することは“clearly terrible way”であると著者も言っており[^WGAN]，その後この論文の著者らによって$D$の勾配ノルムが大きくならないようペナルティ項を損失関数に加えることでweight clippingの必要性を取り除き，かつより安定したWGANの学習を行うことができるWGAN-GP[^WGAN-GP]という手法が提案されている．WGAN-GPは，その後の多くの手法で基本形として用いられている．
 
 一方，WGAN-GPとは異なり，$D$が1-リプシッツとなるよう各レイヤーの重みをそのスペクトルノルムを使って正規化することで，weight clippingも勾配ノルムへのペナルティ付与もせずに学習の安定化と高速化がはかれるというSpectral Normalization for Generative Adversarial Networks（SNGAN）[^SNGAN]という手法も登場した．これによって，WGAN-GPよりもさらに安定的かつ高いクオリティでの画像生成ができることが示されている[^SNGAN]．
 
@@ -164,3 +181,57 @@ Conditional GANを応用し，異なるドメインの画像間の変換をGener
 [^feynman]: 1988年にRichard Feynmanが亡くなったときの彼の黒板より（スティーブン・ホーキングの著書 "The Universe in a Nutshell" によれば）
 
 [^GAN]: Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, and Yoshua Bengio. Generative adversarial nets. In Advances in Neural Information Processing Systems 27, pp. 2672–2680. Curran Associates, Inc., 2014.
+
+[^Wang2018]: Ting-Chun Wang, Ming-Yu Liu, Jun-Yan Zhu, Andrew Tao, Jan Kautz, and Bryan Catanzaro. High-resolution image synthesis and semantic manipulation with condi- tional gans. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, 2018.
+
+[^Tokui2015]: Seiya Tokui, Kenta Oono, Shohei Hido, and Justin Clayton. Chainer: a next- generation open source framework for deep learning. In Proceedings of Workshop on Machine Learning Systems (LearningSys) in The Twenty-ninth Annual Conference on Neural Information Processing Systems (NIPS), 2015.
+
+[^Salimans2016]: Tim Salimans, Ian Goodfellow, Wojciech Zaremba, Vicki Cheung, Alec Radford, and Xi Chen. Improved techniques for training gans. In Proceedings of the 30th Interna- tional Conference on Neural Information Processing Systems, NIPS’16, pp. 2234–2242, USA, 2016. Curran Associates Inc.
+
+[^Rosca2017]: Mihaela Rosca, Balaji Lakshminarayanan, David Warde-Farley, and Shakir Mohamed. Variational approaches for auto-encoding generative adversarial networks. arXiv preprint arXiv:1706.04987, 2017.
+
+[^Ronneberger2015]: O. Ronneberger, P.Fischer, and T. Brox. U-net: Convolutional networks for biomed- ical image segmentation. In Medical Image Computing and Computer-Assisted Inter- vention (MICCAI), Vol. 9351 of LNCS, pp. 234–241. Springer, 2015. (available on arXiv:1505.04597 [cs.CV]).
+
+[^Radford2016]: Alec Radford, Luke Metz, and Soumith Chintala. Unsupervised representation learn- ing with deep convolutional generative adversarial networks. International Conference on Learning Representations, 2016.
+
+[^Miyato2018]: Takeru Miyato, Toshiki Kataoka, Masanori Koyama, and Yuichi Yoshida. Spectral normalization for generative adversarial networks. In International Conference on Learning Representations, 2018.
+
+[^Mirza2014]: Mehdi Mirza and Simon Osindero. Conditional generative adversarial nets. CoRR, Vol. abs/1411.1784, , 2014.
+
+[^Lotter2015]: William Lotter, Gabriel Kreiman, and David D. Cox. Unsupervised learning of visual structure using predictive generative networks. CoRR, Vol. abs/1511.06380, , 2015.
+
+[^Liu2015]: Ziwei Liu, Ping Luo, Xiaogang Wang, and Xiaoou Tang. Deep learning face attributes in the wild. In Proceedings of International Conference on Computer Vision (ICCV), 2015.
+
+[^Ha2018]: David Ha and Ju ̈rgen Schmidhuber. World models. CoRR, Vol. abs/1803.10122, , 2018.
+
+[^Isola2016]: Phillip Isola, Jun-Yan Zhu, Tinghui Zhou, and Alexei A Efros. Image-to-image trans- lation with conditional adversarial networks. arxiv, 2016.
+
+[^Hinton2010]: Geoffrey E. Hinton Joshua Susskind, Adam Anderson. The toronto face dataset. Technical report UTML TR 2010-001, U. Toronto, 2010.
+
+[^Karras2018]: T. Karras, T. Aila, S. Laine, and J. Lehtinen. Progressive Growing of GANs for Improved Quality, Stability, and Variation. International Conference on Learning Representations, 2018.
+
+[^Kingma2013]: Diederik P Kingma and Max Welling. Auto-encoding variational bayes. arXiv preprint arXiv:1312.6114, 2013.
+
+[^Lecun1998]: Y. Lecun, L. Bottou, Y. Bengio, and P. Haffner. Gradient-based learning applied to document recognition. Proceedings of the IEEE, Vol. 86, No. 11, pp. 2278–2324, Nov 1998.
+
+[^Ledig2017]: Christian Ledig, Lucas Theis, Ferenc Huszar, Jose Caballero, Andrew P. Aitken, Alykhan Tejani, Johannes Totz, Zehan Wang, and Wenzhe Shi. Photo-realistic single image super-resolution using a generative adversarial network. In 2017 IEEE Confer- ence on Computer Vision and Pattern Recognition (CVPR), pp. 105–114, July 2017.
+
+[^Brock2018]: Andrew Brock, Jeff Donahue, and Karen Simonyan. Large scale gan training for high fidelity natural image synthesis. CoRR, Vol. abs/1809.11096, , 2018.
+
+[^Finn2017]: C. Finn and S. Levine. Deep visual foresight for planning robot motion. In 2017 IEEE International Conference on Robotics and Automation (ICRA), pp. 2786–2793, May 2017.
+
+[^Finn2016]: Chelsea Finn, Ian Goodfellow, and Sergey Levine. Unsupervised learning for physical interaction through video prediction. In Proceedings of the 30th International Con- ference on Neural Information Processing Systems, NIPS’16, pp. 64–72, USA, 2016. Curran Associates Inc.
+
+[^Glorot2011]: Xavier Glorot, Antoine Bordes, and Yoshua Bengio. Deep sparse rectifier neural networks. In Proceedings of the Fourteenth International Conference on Artificial Intelligence and Statistics, Vol. 15 of Proceedings of Machine Learning Research, pp. 315–323, Fort Lauderdale, FL, USA, 11–13 Apr 2011. PMLR.
+
+[^Goodfellow2014]: Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, and Yoshua Bengio. Generative adversarial nets. In Advances in Neural Information Processing Systems 27, pp. 2672–2680. Curran Asso- ciates, Inc., 2014.
+
+[^Gulrajani2017]: Ishaan Gulrajani, Faruk Ahmed, Martin Arjovsky, Vincent Dumoulin, and Aaron C Courville. Improved training of wasserstein gans. In Advances in Neural Information Processing Systems 30, pp. 5767–5777. Curran Associates, Inc., 2017.
+
+[^Arjovsky2017]: Martin Arjovsky, Soumith Chintala, and L ́eon Bottou. Wasserstein generative adver- sarial networks. In Doina Precup and Yee Whye Teh, editors, Proceedings of the 34th International Conference on Machine Learning, Vol. 70 of Proceedings of Machine Learning Research, pp. 214–223, International Convention Centre, Sydney, Australia, 06–11 Aug 2017. PMLR.
+
+[^pix2pixhd]: Nvidia/pix2pixhd. https://github.com/NVIDIA/pix2pixHD. Accessed: 2018-11-03.
+
+[^Ng2013]: Andrew Y. Ng Andrew L. Maas, Awni Y. Hannun. Rectifier nonlinearities improve neural network acoustic models. In Proceedings of ICML Workshop on Deep Learning for Audio, Speech and Language Processing, 2013.
+
+[^Arjovsky2017]: Martin Arjovsky and L ́eon Bottou. Towards principled methods for training generative adversarial networks. arXiv preprint arXiv:1701.04862, 2017.

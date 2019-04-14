@@ -1,7 +1,7 @@
 # Site settings
-title: butaneko.run
-description: "uhyoooooooooo"
-url: "https://butaneko.run"
+title: blog
+description: ""
+url: "https://mitmul.github.io/blog"
 author:
   name: "butaneko"
   # email: "dyutibarma@gmail.com"
@@ -26,7 +26,7 @@ defaults:
       layout: "post"
 
 # Plugins
-gems:
+plugins:
   - jekyll-paginate
   - jekyll-sitemap
 
