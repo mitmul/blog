@@ -41,13 +41,13 @@ $$
 - 推定されたクラスラベルの分布 $P^o$ を使って relatedness を推論する
 - 「クラス - 関係」という prior を学習する
     - どの物体かによってどの物体との間にどういう関係を持ちやすいかの偏りがあるはず．それを使う
-- $n (n - 1)$ 個全ての directional なペア $\{ {\bf p}^o_i, {\bf p}^o_i | i \neq j\}$ をスコア付けして，relatedness を $s_{ij} = f({\bf p}^o_i, {\bf p}^o_j$ で計算
+- $n (n - 1)$ 個全ての directional なペア $ \\{ {\bf p}^o_i, {\bf p}^o_i \| i \neq j \\} $ をスコア付けして，relatedness を $s_{ij} = f({\bf p}^o_i, {\bf p}^o_j)$ で計算
 - $f$ は relatedness 関数．${\bf p}^o_i$ と ${\bf p}^o_j$ を concat したものを入力に取る MLP とかを使う単純な方法も考えられる
 - ただ，それを全部のペアに実際やると計算が大変すぎるので，非対称なカーネル関数を使う：
 
 $$
 f({\bf p}^o_i, {\bf p}^o_j) =
-\langle \Phi({\bf p}^o_i)), \Psi({\bf p}^o_j) \rangle, i \neq j
+\langle \Phi({\bf p}^o_i), \Psi({\bf p}^o_j) \rangle, i \neq j
 $$
 
 - つまり directional なエッジの根本と先端で別々のカーネル関数を適用して，その結果の内積を取ることで relatedness にする
@@ -56,7 +56,7 @@ $$
 - それらに NMS を適用して重複したペアを取り除く
 - 各ペアは bounding box を持っている
 - 各ペアの順番 (エッジの方向) には意味がある
-- ペアとペアの間の overlap は以下のように計算する．ペア $\{u, v\}$ と $\{p, q\}$ があったとき
+- ペアとペアの間の overlap は以下のように計算する．ペア $\\{u, v\\}$ と $\\{p, q\\}$ があったとき
   $$
   {\rm IoU}(\{u, v\}, \{p, q\}) =
   \frac
@@ -66,7 +66,7 @@ $$
   ただし $I$ は intersection，$U$ は union を表す
 - この Pairwise NMS を行ったあとに残った $m$ 個のペアは意味のある関係の候補の集合 ${\bf E}$ とおく
 - これで一番最初よりだいぶ選抜された $\mathcal{G} = ({\bf V}, {\bf E})$ が得られた
-- これら $m$ 個のペアに対して，始点・終点のノードの region の union に対して visual feature をとりだしたものを $X^r = \\{ {\bf x}^r_1, \dots, {\bf x}^r_m} \\}$ とおく
+- これら $m$ 個のペアに対して，始点・終点のノードの region の union に対して visual feature をとりだしたものを $ X^r = \\{ {\bf x}^r_1, \dots, {\bf x}^r_m \\} $ とおく
 
 ### 結局得られたもの
 
@@ -78,17 +78,17 @@ $$
 ### まずは Vanilla GCN
 
 - 各ノード $i$ が特徴ベクトル ${\bf z}_i \in \mathbb{R}^d$ を持っている
-- ノード $i$ と接続がある近隣のノードの集合 $\{ {\bf z}_j | j \in \mathcal{N}(i) \}$ を学習で決定する重み行列 ${\bf W}$ で線形変換する
+- ノード $i$ と接続がある近隣のノードの集合 $ \\{ {\bf z}_j \| j \in \mathcal{N}(i) \\} $ を学習で決定する重み行列 ${\bf W}$ で線形変換する
 - 変換した隣接ノードの特徴ベクトルに事前に決定されている $\boldsymbol\alpha$ を掛ける
 - その結果に非線形変換を施す
 - まとめると
-  $$
-  {\bf z}_i^{(l+1)} = \sigma \left(
-  {\bf z}_i^{(l)} +
-  \sum_{j \in \mathbb{N}(i)}
-  \alpha_{ij} {\bf W} {\bf z}_j^{(l)}
-  \right)
-  $$
+
+$$
+{\bf z}_i^{(l+1)} = \sigma \left(
+{\bf z}_i^{(l)} +
+\sum_{j \in \mathbb{N}(i)}
+\alpha_{ij} {\bf W} {\bf z}_j^{(l)}
+\right)
+$$
 
 
-まず ${\bf I}$ から ${\bf V}$ を推定．これは物体らしい
