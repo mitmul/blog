@@ -1,3 +1,9 @@
+---
+layout:  post
+title:  "Graph R-CNN for Scene Graph Generation"
+mathjax: true
+---
+
 # Graph R-CNN for Scene Graph Generation
 
 画像からシーングラフを生成するタスクを考える．シーン中のすべての物体間のあらゆる可能な関係を考慮するのは現実的でないから，既存手法の中にはランダムに物体間の間に張られるエッジをサンプルするものがある．
@@ -26,7 +32,7 @@ $$
 - これらを $n$ 個並べた行列
     - $R^o \in \mathbb{R}^{n \times 4}$
     - $X^o \in \mathbb{R}^{n \times d}$
-    - $P^o \in \mathbb{R}^{n \times |C|}$
+    - $P^o \in \mathbb{R}^{n \times \|C\|}$
 
 ## Relation Proposal Network
 
@@ -38,10 +44,12 @@ $$
 - $n (n - 1)$ 個全ての directional なペア $\{ {\bf p}^o_i, {\bf p}^o_i | i \neq j\}$ をスコア付けして，relatedness を $s_{ij} = f({\bf p}^o_i, {\bf p}^o_j$ で計算
 - $f$ は relatedness 関数．${\bf p}^o_i$ と ${\bf p}^o_j$ を concat したものを入力に取る MLP とかを使う単純な方法も考えられる
 - ただ，それを全部のペアに実際やると計算が大変すぎるので，非対称なカーネル関数を使う：
-  $$
-  f({\bf p}^o_i, {\bf p}^o_j) = 
-  \langle \Phi({\bf p}^o_i)), \Psi({\bf p}^o_j) \rangle, i \neq j
-  $$
+
+$$
+f({\bf p}^o_i, {\bf p}^o_j) =
+\langle \Phi({\bf p}^o_i)), \Psi({\bf p}^o_j) \rangle, i \neq j
+$$
+
 - つまり directional なエッジの根本と先端で別々のカーネル関数を適用して，その結果の内積を取ることで relatedness にする
 - カーネル関数にはそれぞれ MLP を使う
 - relatedness 推定したら降順にソートしてトップ $K$ ペアを残す
@@ -58,7 +66,7 @@ $$
   ただし $I$ は intersection，$U$ は union を表す
 - この Pairwise NMS を行ったあとに残った $m$ 個のペアは意味のある関係の候補の集合 ${\bf E}$ とおく
 - これで一番最初よりだいぶ選抜された $\mathcal{G} = ({\bf V}, {\bf E})$ が得られた
-- これら $m$ 個のペアに対して，始点・終点のノードの region の union に対して visual feature をとりだしたものを $X^r = \{{\bf x}^r_1, \dots, {\bf x}^r_m\}$ とおく
+- これら $m$ 個のペアに対して，始点・終点のノードの region の union に対して visual feature をとりだしたものを $X^r = \\{ {\bf x}^r_1, \dots, {\bf x}^r_m} \\}$ とおく
 
 ### 結局得られたもの
 

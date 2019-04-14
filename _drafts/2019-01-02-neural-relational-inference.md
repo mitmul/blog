@@ -68,29 +68,29 @@ array([[1., 0., 0., 0., 0.],
 
 ### (1) 埋め込みベクトルを作る
 $$
-{\bf h}_j^{(1)} = f_{\rm emb}({\bf x}_j) \label{eq:encode_embedding}
+\{\bf h}_j^\{(1)} = f_\{\rm emb}(\{\bf x}_j) \label\{eq:encode_embedding}
 $$
 
-${\bf x}_j \in \mathcal{R}^{d_{\rm init}}$は、$j$番目のノード特徴量の初期値．この論文では位置と速度をconcatしたもの．$f_{\rm emb}$は$\mathcal{R}^{d_{\rm init}} \rightarrow \mathcal{R}^{d_{\rm emb}}$をやるMLPかCNN．${\bf h}_j^{(1)} \in \mathcal{R}^{d_{\rm emb}}$を出力する．
+$\{\bf x}_j \in \mathcal\{R}^\{d_\{\rm init}}$は、$j$番目のノード特徴量の初期値．この論文では位置と速度をconcatしたもの．$f_\{\rm emb}$は$\mathcal\{R}^\{d_\{\rm init}} \rightarrow \mathcal\{R}^\{d_\{\rm emb}}$をやるMLPかCNN．$\{\bf h}_j^\{(1)} \in \mathcal\{R}^\{d_\{\rm emb}}$を出力する．
 
 まず最初の入力はミニバッチ次元も含めると`[batch_size, num_nodes, timesteps, feature_dims]`という形式になっている．
 
 ### (2) ノード特徴からエッジ特徴を作る
 $$
-v \rightarrow e: \hspace{2em}
-{\bf h}_{(i, j)}^{(1)} = f_e^{(1)}([{\bf h}_i^{(1)}, {\bf h}_j^{(1)}]) \label{eq:encode_node2edge}
+v \rightarrow e: \hspace\{2em}
+\{\bf h}_\{(i, j)}^\{(1)} = f_e^\{(1)}([\{\bf h}_i^\{(1)}, \{\bf h}_j^\{(1)}]) \label\{eq:encode_node2edge}
 $$
 
 ### (3) エッジ特徴からノード特徴を更新
 $$
-e \rightarrow v: \hspace{2em}
-{\bf h}_j^{(2)} = f_v^{(1)}(\sum_{i \neq j} {\bf h}_{(i, j)}^{(1)}) \label{eq:encode_edge2node}
+e \rightarrow v: \hspace\{2em}
+\{\bf h}_j^\{(2)} = f_v^\{(1)}(\sum_\{i \neq j} \{\bf h}_\{(i, j)}^\{(1)}) \label\{eq:encode_edge2node}
 $$
 
 ### (4) ノード特徴からエッジ特徴を更新
 $$
-v \rightarrow e: \hspace{2em}
-{\bf h}_{(i, j)}^{(2)} = f_e^{(2)}([{\bf h}_i^{(2)}, {\bf h}_j^{(2)}]) \label{eq:encode_node2edge2}
+v \rightarrow e: \hspace\{2em}
+\{\bf h}_\{(i, j)}^\{(2)} = f_e^\{(2)}([\{\bf h}_i^\{(2)}, \{\bf h}_j^\{(2)}]) \label\{eq:encode_node2edge2}
 $$
 
 ## Decoder
